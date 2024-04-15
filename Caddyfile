@@ -1,0 +1,105 @@
+{
+	debug
+
+	order authenticate before respond
+	order authorize before basicauth
+
+	security {
+		local identity store localdb {
+			realm local
+			path /data/caddy/users.json
+			user a00001 {
+				name Webmaster
+				email a00001@localhost.localdomain
+				# password: Td45@4d269b7ec2f5ffd31ee5
+				# echo -n 'Td45@4d269b7ec2f5ffd31ee5' | bcrypt-cli -c 10
+				password "$2a$10$VLCDIncXaRFshFTGcz2aP.q.gR0O6y1i6mVDks/7WmE3JKLjPD.wuwef" overwrite
+				roles authp/admin authp/user
+			}
+			user jsmith {
+				name John Smith
+				email jsmith@localhost.localdomain
+				password "My@Password1234"
+				roles "Domain Users" "Domain Admins" "authp/admin"
+			}
+		}
+
+		authentication portal myportal {
+			crypto default token lifetime 3600
+			enable identity store localdb
+			cookie domain localhost.test
+			ui {
+				logo url "https://caddyserver.com/resources/images/caddy-circle-lock.svg"
+				logo description "Caddy"
+				links {
+					
+					"My App" https://app.localhost
+				}
+			}
+
+
+			transform user {
+				match origin local
+				action add role authp/user
+			}
+		}
+
+		authorization policy guests_policy {
+			set auth url https://app.localhost/
+			allow roles authp/admin authp/user
+			acl rule {
+				comment allow guests only
+				match role guest authp/guest
+				allow stop log info
+			}
+			acl rule {
+				comment default deny
+				match any
+				deny log warn
+			}
+		}
+
+		authorization policy users_policy {
+			set auth url https://app.localhost/
+			allow roles authp/admin authp/user
+			acl rule {
+				comment allow users
+				match role authp/user
+				allow stop log info
+			}
+			acl rule {
+				comment default deny
+				match any
+				deny log warn
+			}
+		}
+
+		authorization policy admins_policy {
+			set auth url https://app.localhost/auth
+			allow roles authp/admin authp/user
+			acl rule {
+				comment allow users
+				match role authp/user
+				allow stop log info
+			}
+			acl rule {
+				comment default deny
+				match any
+				deny log warn
+			}
+		}
+	}
+}
+
+app.localhost  {
+	tls internal
+	route /auth* {
+		authenticate with myportal
+	}
+
+	route {
+		authorize with admins_policy
+		reverse_proxy /* http://httpbin:80
+	}
+}
+

@@ -1,0 +1,79 @@
+---
+version: '2.0'
+services:
+  httpbin:
+    image: kennethreitz/httpbin:latest
+    expose:
+    - port: 80
+      as: 80
+      to:
+        - service: caddy
+
+  caddy:
+    image: thumperai/caddy:v0.0.5
+    expose:
+    - port: 443
+      as: 443
+      to:
+        - global: true
+    # - port: 80
+    #   as: 80
+    #   to:
+    #     - global: true
+
+    #     - global: true
+    # command:
+    #   - "sh"
+    #   - "-c"
+    # args:
+    #   - tunnel run secret-tunnel --no-autoupdate --token eyJhIjoiMWJjNDFiMmIwZTY1MGNlNTFlNGM2NjIwYzQ2MzJhYzEiLCJ0IjoiYjc0YTFlNDQtZmZjNC00MTczLWExYTUtMTdhNWVkMjA5YzBiIiwicyI6Ik9HVXhPRFV4TURNdFlqUmxaUzAwT0RVMkxUbGpORFl0Tm1GbU0yVXhOMlpqWXpFNSJ9'
+      # - 'printf "tunnel: secret-tunnel\n  credentials-file: /etc/cloudflared/creds/credentials.json\n  metrics: 0.0.0.0:2000\n  no-autoupdate: true\n  ingress:\n    - hostname: api.thumperai.com\n      service: http://httpbin:80\n    - service: http_status:404\n" > cloudflared_config.yaml;
+      #    exec tunnel --no-autoupdate run '
+        # docker run cloudflare/cloudflared:latest tunnel --no-autoupdate run --token eyJhIjoiMWJjNDFiMmIwZTY1MGNlNTFlNGM2NjIwYzQ2MzJhYzEiLCJ0IjoiYjc0YTFlNDQtZmZjNC00MTczLWExYTUtMTdhNWVkMjA5YzBiIiwicyI6Ik9HVXhPRFV4TURNdFlqUmxaUzAwT0RVMkxUbGpORFl0Tm1GbU0yVXhOMlpqWXpFNSJ9
+
+
+profiles:
+  compute:
+    caddy:
+      resources:
+        cpu:
+          units: 1.0
+        memory:
+          size: 512Mi
+        storage:
+          size: 512Mi
+
+    httpbin:
+      resources:
+        cpu:
+          units: 1.0
+        memory:
+          size: 512Mi
+        storage:
+          size: 512Mi
+
+
+  placement:
+    westcoast:
+      pricing:
+        caddy:
+          denom: uakt
+          amount: 1000000
+        httpbin:
+          denom: uakt
+          amount: 1000000
+     
+
+deployment:
+  caddy:
+    westcoast:
+      profile: caddy
+      count: 1
+  httpbin:
+    westcoast:
+      profile: httpbin
+      count: 1
+
+
+
+
